@@ -1,10 +1,11 @@
 """E2E: the Settings → Appearance *code* font size drives Monaco and persists.
 
 The code-font controls live on the Settings page (``pages/SettingsPage.tsx``,
-``UiCodeFontSizeControl`` / ``UiCodeFontFamilyControl``) under a "Code font"
-subheading: a segmented pill (``−`` / value / ``+``) under a ``role="group"``
-labelled "Code font size", plus a free-text family input. Stepping the size
-writes the px choice to ``localStorage["omnigent:code-font-size"]``.
+``UiCodeFontSizeControl`` / ``UiCodeFontFamilyControl``) as two rows labelled
+"Code font size" and "Code font family": a segmented pill (``−`` / value /
+``+``) under a ``role="group"`` labelled "Code font size", plus a free-text
+family input. Stepping the size writes the px choice to
+``localStorage["omnigent:code-font-size"]``.
 
 Unlike the chrome font (which rides the ``--ui-font-scale`` CSS variable), the
 code editor (Monaco) and terminal (xterm) are fixed-pixel widgets: they read a

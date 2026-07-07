@@ -210,13 +210,13 @@ function AppearanceSection() {
 
         <UiFontFamilyControl />
 
-        {/* Code font — the fixed-pixel editor + terminal, grouped under their own
-            subheading so it's clear these don't scale the surrounding chrome. */}
-        <div className="flex flex-col gap-6">
-          <span className="text-sm font-medium">Code font</span>
-          <UiCodeFontSizeControl />
-          <UiCodeFontFamilyControl />
-        </div>
+        {/* Code font (Monaco + xterm) sits as its own two rows — labelled in full
+            ("Code font size" / "Code font family") rather than under a shared
+            heading — so each control reads unambiguously next to the UI-font rows
+            above and it's clear these don't scale the surrounding chrome. */}
+        <UiCodeFontSizeControl />
+
+        <UiCodeFontFamilyControl />
       </div>
     </Section>
   );
@@ -437,7 +437,7 @@ function UiCodeFontSizeControl() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       <div className="flex flex-col">
-        <span className="text-sm font-medium">Font size</span>
+        <span className="text-sm font-medium">Code font size</span>
         <span className="text-sm text-muted-foreground">
           Size of code in the editor and terminal.
         </span>
@@ -510,7 +510,7 @@ function UiCodeFontFamilyControl() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="text-sm font-medium">Font family</span>
+        <span className="text-sm font-medium">Code font family</span>
         <span className="text-sm text-muted-foreground">
           Font for the code editor and terminal. Leave blank for the default.
         </span>
