@@ -401,6 +401,29 @@ describe("TerminalSession", () => {
     session.dispose();
   });
 
+  it("setFont re-fonts the terminal in place without reconnecting", () => {
+    // WHY: a code-font change (Settings → Appearance) must re-font the LIVE
+    // terminal — mutating options in place like setTheme, never tearing down
+    // the WebSocket (xterm is a fixed-pixel widget that can't follow a CSS
+    // variable). The new size lands on the terminal and a custom family is
+    // applied with the mono fallback appended so an uninstalled name degrades
+    // to mono, not a serif.
+    const { socket, session } = makeSession();
+    socket.open();
+    const before = socket;
+
+    session.setFont(18, "Fira Code");
+
+    // The socket is untouched (no reconnect) ...
+    expect(socket).toBe(before);
+    expect(socket.closed).toBe(false);
+    // ... and the new size/family reached the terminal instance.
+    const { term } = session as unknown as { term: Terminal };
+    expect(term.options.fontSize).toBe(18);
+    expect(term.options.fontFamily).toContain("Fira Code");
+    session.dispose();
+  });
+
   it("dispose is idempotent and tears down observer + socket once", () => {
     // WHY: the view disposes explicitly on every re-dial and a future React
     // upgrade would call the ref cleanup again — a second dispose must be a
