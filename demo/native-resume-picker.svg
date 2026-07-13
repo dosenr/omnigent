@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="430" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Host-scoped native resume picker</title>
+  <desc id="desc">Render of genuine terminal output showing two local Claude wrapper sessions.</desc>
+  <rect width="1200" height="430" fill="#111827"/>
+  <g fill="#f3f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">
+    <text x="42" y="58">Resume  ·  claude-native-ui  · page 1/1, showing 1-2 of 2</text>
+    <text x="42" y="122" fill="#f472b6">&gt; 1. local alpha</text>
+    <text x="76" y="164" fill="#9ca3af">1h ago · /tmp/omnigent-demo/alpha  ↪ cd · conv_local_alpha</text>
+    <text x="42" y="228">  2. local beta</text>
+    <text x="76" y="270" fill="#9ca3af">1h ago · /tmp/omnigent-demo/beta   ↪ cd · conv_local_beta</text>
+    <text x="42" y="354" fill="#9ca3af">Keys: ↑/↓ move · Enter resume · n/p page · q/Esc cancel</text>
+  </g>
+</svg>
