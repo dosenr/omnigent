@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="250" viewBox="0 0 1160 250" role="img" aria-labelledby="title desc">
+  <title id="title">Claude cost-forwarding retry timeline</title>
+  <desc id="desc">Render of genuine deterministic output from the cost-forwarding backoff scenario.</desc>
+  <rect width="1160" height="250" fill="#111827"/>
+  <g fill="#f3f4f6" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="24">
+    <text x="42" y="64">t=100.0  POST -&gt; 429 Retry-After: 5  next_attempt=105.0</text>
+    <text x="42" y="126" fill="#9ca3af">t=100.0  next poll -&gt; suppressed</text>
+    <text x="42" y="188" fill="#86efac">t=105.0  POST -&gt; 200  failures=0 next_attempt=0.0</text>
+  </g>
+</svg>
