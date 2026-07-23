@@ -1,0 +1,20 @@
+^DBEFORE (2561d54e)
+commit: 2561d54e
+module: <selected-worktree>/omnigent/claude_native_bridge.py
+module sha256: 3188a029b86d1274
+scenario: slow relay call, then ping and fast relay call
+
+15:43:16.002  +00.23s  SEND  id=1 initialize
+15:43:16.239  +00.47s  RECV  id=1 result
+15:43:16.239  +00.47s  SEND  id=None notifications/initialized
+15:43:16.240  +00.47s  SEND  id=2 tools/call sys_slow
+15:43:17.241  +01.47s  SEND  id=3 ping
+15:43:17.241  +01.47s  SEND  id=4 tools/call sys_fast
+15:43:36.253  +20.48s  RECV  id=2 result
+15:43:36.253  +20.48s  RECV  id=3 result
+15:43:36.257  +20.48s  RECV  id=4 result
+
+RESULTS
+id 2 sys_slow: answered after 20.01s
+id 3 ping: answered after 19.01s
+id 4 sys_fast: answered after 19.02s

@@ -1,0 +1,20 @@
+^DAFTER (2561d54e + 8ab87641)
+commit: d0dac022
+module: <selected-worktree>/omnigent/claude_native_bridge.py
+module sha256: 9806559779012cda
+scenario: slow relay call, then ping and fast relay call
+
+15:43:44.495  +00.21s  SEND  id=1 initialize
+15:43:44.700  +00.42s  RECV  id=1 result
+15:43:44.700  +00.42s  SEND  id=None notifications/initialized
+15:43:44.700  +00.42s  SEND  id=2 tools/call sys_slow
+15:43:45.704  +01.42s  SEND  id=3 ping
+15:43:45.705  +01.42s  SEND  id=4 tools/call sys_fast
+15:43:45.705  +01.42s  RECV  id=3 result
+15:43:45.707  +01.42s  RECV  id=4 result
+15:44:04.713  +20.43s  RECV  id=2 result
+
+RESULTS
+id 2 sys_slow: answered after 20.01s
+id 3 ping: answered after 0.00s
+id 4 sys_fast: answered after 0.00s
