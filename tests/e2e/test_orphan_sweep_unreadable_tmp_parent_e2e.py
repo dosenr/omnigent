@@ -51,14 +51,16 @@ def _server_env(tmp_parent: Path, home: Path) -> dict[str, str]:
     :param tmp_parent: Harness root containing the staged permission failure.
     :param home: Scratch home for server state.
     :returns: Child environment with ambient runtime bindings removed."""
-    env = {k: v for k, v in os.environ.items() if not k.startswith("OMNIGENT_")}
-    env.pop("RUNNER_SERVER_URL", None)
-    for var in ("DATABRICKS_TOKEN", "ANTHROPIC_API_KEY", "CODEX", "CLAUDE_CODE"):
-        env.pop(var, None)
+    env = {
+        key: os.environ[key]
+        for key in ("PATH", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE")
+        if key in os.environ
+    }
     env["HOME"] = str(home)
-    env["PYTHONPATH"] = f"{_REPO_ROOT}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    env["PYTHONPATH"] = str(_REPO_ROOT)
     # Startup constructs an LLM client; a stub satisfies the env check.
     env["OPENAI_API_KEY"] = "stub-not-used"
+    env["OPENAI_BASE_URL"] = "http://127.0.0.1:9/v1"
     env["OMNIGENT_HARNESS_TMP_PARENT"] = str(tmp_parent)
     return env
 
