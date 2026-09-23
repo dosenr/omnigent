@@ -1,45 +1,8 @@
-"""
-End-to-end regression: the boot-time orphan sweep must not abort
-``omnigent server`` startup when the harness tmp parent (or an entry
-inside it) is unreadable.
+"""A real server must boot despite unreadable harness-sweep paths.
 
-``HarnessProcessManager._sweep_orphans()`` documents best-effort cleanup:
-an inaccessible path should log and skip rather than abort runner boot.
-Without ``OSError`` guards on the metadata operations around the sentinel
-read — ``self._tmp_parent.exists()`` / ``iterdir()`` and ``child.is_dir()``
-/ ``sentinel.exists()`` — a ``PermissionError`` propagates straight out of
-``start()``, which the server lifespan awaits, so uvicorn logs
-"Application startup failed. Exiting." and the whole ``omnigent server``
-process dies.
-
-The user journey guarded here (both facets):
-
-1. operator points ``OMNIGENT_HARNESS_TMP_PARENT`` at a shared directory
-   whose contents they cannot fully read (another Unix user's entries, a
-   broken ACL, a filesystem race);
-2. operator runs ``omnigent server``;
-3. boot crashes with ``PermissionError`` from ``_sweep_orphans`` instead
-   of warning, skipping the unreadable scope, and serving.
-
-Two staged filesystem shapes cover the two unguarded surfaces:
-
-- **unlistable parent** — the parent is mode ``0o333`` (creatable but not
-  listable, exactly what a non-owner sees on a ``0o700``-style shared
-  parent); ``iterdir()`` raises.
-- **inaccessible child** — the parent is listable but contains a mode
-  ``0o000`` ``ap-*`` sibling; ``(child / "AP_PID").exists()`` raises.
-
-Each test boots a REAL ``omnigent server`` subprocess through the CLI (the
-same command a user runs) and asserts the server reaches ``/health``.
-Without the sweep's ``OSError`` guards both tests fail with the process
-exiting early and the ``PermissionError`` traceback in its log. The
-child-facet test additionally asserts that a readable dead orphan sibling
-still gets swept, guarding the "readable dead-orphan cleanup remains
-unchanged" clause of the expected behavior.
-
-Permission-bit staging is meaningless as root or on Windows, hence the
-skips.
-"""
+Mode 0333 blocks parent enumeration; mode 0000 blocks sibling inspection.
+The sibling case also verifies that a readable dead orphan is removed.
+These POSIX permission tests skip on Windows and when run as root."""
 
 from __future__ import annotations
 
@@ -83,20 +46,11 @@ def _find_free_port() -> int:
 
 
 def _server_env(tmp_parent: Path, home: Path) -> dict[str, str]:
-    """
-    Environment for the ``omnigent server`` subprocess.
+    """Isolate server configuration and force imports from this worktree.
 
-    Points the harness tmp parent at the staged directory, forces imports
-    from this worktree, and strips every ambient ``OMNIGENT_*`` var so a
-    test run that is itself hosted inside an Omnigent runner doesn't leak
-    zygote fds, tunnel tokens, or log/config/data paths into the child
-    server. ``HOME`` is redirected to a scratch dir so the child's default
-    config and log locations stay test-local.
-
-    :param tmp_parent: Value for ``OMNIGENT_HARNESS_TMP_PARENT``.
-    :param home: Scratch ``HOME`` for the child server.
-    :returns: The subprocess environment mapping.
-    """
+    :param tmp_parent: Harness root containing the staged permission failure.
+    :param home: Scratch home for server state.
+    :returns: Child environment with ambient runtime bindings removed."""
     env = {k: v for k, v in os.environ.items() if not k.startswith("OMNIGENT_")}
     env.pop("RUNNER_SERVER_URL", None)
     for var in ("DATABRICKS_TOKEN", "ANTHROPIC_API_KEY", "CODEX", "CLAUDE_CODE"):
@@ -112,17 +66,11 @@ def _server_env(tmp_parent: Path, home: Path) -> dict[str, str]:
 def _boot_server_and_wait_health(
     tmp_parent: Path, tmp_path: Path
 ) -> Iterator[tuple[subprocess.Popen[bytes], str, Path]]:
-    """
-    Start ``omnigent server`` with *tmp_parent* configured and wait for
-    ``/health``.
+    """Boot the real CLI server and yield its health outcome with automatic teardown.
 
-    Yields once with ``(proc, outcome, log_path)`` where *outcome* is
-    ``"healthy"``, ``"exited"`` (the startup abort this bug produces), or
-    ``"timeout"``. Generator form so callers get teardown via ``finally``.
-
-    :param tmp_parent: The staged harness tmp parent.
-    :param tmp_path: Per-test scratch dir for db/artifacts/log.
-    """
+    :param tmp_parent: Staged harness root.
+    :param tmp_path: Scratch directory for database, artifacts and logs.
+    :yields: Process, healthy/exited/timeout outcome, and captured log path."""
     port = _find_free_port()
     artifact_dir = tmp_path / "artifacts"
     artifact_dir.mkdir()
@@ -182,13 +130,7 @@ def _boot_server_and_wait_health(
 
 
 def _assert_boot_survived(outcome: str, log_path: Path) -> None:
-    """
-    Fail with the server log's abort evidence when boot did not survive.
-
-    :param outcome: ``"healthy"`` / ``"exited"`` / ``"timeout"`` from
-        :func:`_boot_server_and_wait_health`.
-    :param log_path: The captured server stdout/stderr log.
-    """
+    """Require a healthy server, including its log on failure."""
     if outcome == "healthy":
         return
     log_text = log_path.read_text() if log_path.exists() else ""
@@ -201,15 +143,7 @@ def _assert_boot_survived(outcome: str, log_path: Path) -> None:
 
 
 def test_server_boot_survives_unlistable_tmp_parent(tmp_path: Path) -> None:
-    """
-    Facet 1 — parent enumeration: an ``OMNIGENT_HARNESS_TMP_PARENT`` that
-    exists but cannot be listed (mode ``0o333``, the non-owner view of a
-    shared parent) must not abort ``omnigent server`` startup.
-
-    Without the guard, ``_sweep_orphans``'s ``self._tmp_parent.iterdir()``
-    raises ``PermissionError``, the server lifespan aborts, and the
-    process exits before ever serving ``/health``.
-    """
+    """An unlistable but writable harness parent must not prevent server startup."""
     parent = tmp_path / "shared"
     parent.mkdir(mode=0o700)
     (parent / "ap-foreign").mkdir(mode=0o700)
@@ -225,16 +159,7 @@ def test_server_boot_survives_unlistable_tmp_parent(tmp_path: Path) -> None:
 
 
 def test_server_boot_survives_inaccessible_ap_sibling(tmp_path: Path) -> None:
-    """
-    Facet 2 — child inspection: a listable parent containing a mode
-    ``0o000`` ``ap-*`` sibling (another user's instance dir, a broken ACL)
-    must not abort startup, and a READABLE dead orphan alongside it must
-    still get swept.
-
-    Without the guard, ``(child / "AP_PID").exists()`` raises
-    ``PermissionError`` on the inaccessible sibling and boot dies before
-    the readable orphan is even considered.
-    """
+    """Skip an inaccessible sibling while still removing a readable dead orphan."""
     parent = tmp_path / "shared"
     parent.mkdir(mode=0o700)
     blocked = parent / "ap-foreign"
