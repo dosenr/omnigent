@@ -369,11 +369,12 @@ def test_clone_credentials_keep_launch_token_out_of_argv_and_config(
 def test_clone_helper_passes_a_dash_leading_launch_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """``secrets.token_urlsafe`` launch tokens can start with ``-``; the helper must parse them."""
     monkeypatch.setenv(HOST_TOKEN_ENV_VAR, "-tok")
-    # ``erase`` returns as soon as the arguments parse, without a broker call.
-    monkeypatch.setattr(sys, "argv", ["helper", "erase"])
-    with pytest.raises(SystemExit) as exit_info:
-        exec(k8s._clone_helper_source("http://srv.example.com", "host-1"), {})
-    assert exit_info.value.code == 0
+    # Run the helper the way git does; ``erase`` returns once the arguments parse.
+    source = k8s._clone_helper_source("http://srv.example.com", "host-1")
+    result = subprocess.run(
+        [sys.executable, "-c", source, "erase"], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_clone_credential_config_is_private_at_creation(
